@@ -54,7 +54,7 @@ extern "C"
     bool _funcTwoState = true;
     bool _funcThreeState = true;
 
-    string _scrPath;
+    vector<string> _scriptPaths;
 
     bool _showConsole = false;
     bool _requestedReset = false;
@@ -75,7 +75,7 @@ extern "C"
     {
         printf("\n");
         ConsoleLib::MessageOutput("Reloading...\n\n", 0);
-        _backend = new LuaBackend(_scrPath.c_str(), MemoryLib::ExecAddress + MemoryLib::BaseAddress);
+        _backend = new LuaBackend(_scriptPaths, MemoryLib::ExecAddress + MemoryLib::BaseAddress);
 
         if (_backend->loadedScripts.size() == 0)
             ConsoleLib::MessageOutput("No scripts found! Reload halted!\n\n", 3);
@@ -103,7 +103,7 @@ extern "C"
         _requestedReset = false;
     }
 
-    int __declspec(dllexport) EntryLUA(int ProcessID, HANDLE ProcessH, uint64_t TargetAddress, const char* ScriptPath)
+    int __declspec(dllexport) EntryLUA(int ProcessID, HANDLE ProcessH, uint64_t TargetAddress, vector<string> ScriptPaths)
     {
         ShowWindow(GetConsoleWindow(), SW_HIDE);
 
@@ -116,11 +116,11 @@ extern "C"
         cout << "======================================" << "\n\n";
 
         ConsoleLib::MessageOutput("Initializing LuaEngine v5.0...\n\n", 0);
-        _scrPath = string(ScriptPath);
+        _scriptPaths = ScriptPaths;
 
         MemoryLib::ExternProcess(ProcessID, ProcessH, TargetAddress);
 
-        _backend = new LuaBackend(ScriptPath, MemoryLib::ExecAddress + TargetAddress);
+        _backend = new LuaBackend(ScriptPaths, MemoryLib::ExecAddress + TargetAddress);
         _backend->frameLimit = 16;
 
         if (_backend->loadedScripts.size() == 0)
@@ -333,9 +333,11 @@ DWORD WINAPI entry(LPVOID lpParameter) {
     GetModuleFileNameA(nullptr, modulePath, MAX_PATH);
 
     std::string_view moduleName = modulePath;
+    std::string_view gamesPath = modulePath;
     std::size_t pos = moduleName.rfind("\\");
     if (pos != std::string_view::npos) {
         moduleName.remove_prefix(pos + 1);
+        gamesPath.remove_suffix(gamesPath.size() - pos);
     }
 
     auto entry = gameInfos.find(moduleName);
@@ -347,17 +349,39 @@ DWORD WINAPI entry(LPVOID lpParameter) {
 
     uint64_t moduleAddress = (uint64_t)GetModuleHandleA(nullptr);
     uint64_t baseAddress = moduleAddress + gameInfo->baseAddress;
-    char scriptsPath[MAX_PATH];
-    SHGetFolderPathA(0, CSIDL_MYDOCUMENTS, nullptr, 0, scriptsPath);
-    std::strcat(scriptsPath, "\\KINGDOM HEARTS HD 1.5+2.5 ReMIX\\scripts");
 
-    fs::path gameScriptsPath = fs::path{scriptsPath} / gameInfo->scriptsPath;
+    vector<string> scriptPaths = {};
+    fs::path scriptLocationsFile = fs::path{ gamesPath } / "LuaScriptLocations.txt";
+    if (fs::exists(scriptLocationsFile)) {
+        ifstream input(scriptLocationsFile);
 
-    if (fs::exists(gameScriptsPath)) {
+        string line;
+        while (getline(input, line)) {
+            fs::path scriptPath = fs::path{ line } / gameInfo->scriptsPath;
+            if (fs::exists(scriptPath)) {
+                scriptPaths.push_back(scriptPath.u8string());
+            }
+        }
+
+        input.close();
+    }
+    else {
+        // Fall back to the scripts folder in Documents
+        char scriptsPath[MAX_PATH];
+        SHGetFolderPathA(0, CSIDL_MYDOCUMENTS, nullptr, 0, scriptsPath);
+        std::strcat(scriptsPath, "\\KINGDOM HEARTS HD 1.5+2.5 ReMIX\\scripts");
+
+        fs::path gameScriptsPath = fs::path{ scriptsPath } / gameInfo->scriptsPath;
+        if (fs::exists(gameScriptsPath)) {
+            scriptPaths.push_back(gameScriptsPath.u8string());
+        }
+    }
+
+    if (!scriptPaths.empty()) {
         AllocConsole();
         std::freopen("CONOUT$", "w", stdout);
 
-        if (EntryLUA(GetCurrentProcessId(), GetCurrentProcess(), baseAddress, gameScriptsPath.u8string().c_str()) == 0) {
+        if (EntryLUA(GetCurrentProcessId(), GetCurrentProcess(), baseAddress, scriptPaths) == 0) {
             // TODO: Hook after game initialization is done.
             while (!hookGame(moduleAddress)) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(16));

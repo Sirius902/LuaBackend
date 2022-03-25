@@ -3,106 +3,111 @@
 
 string _pathStr = "";
 
-LuaBackend::LuaBackend(const char* ScrPath, uint64_t BaseInput)
+LuaBackend::LuaBackend(vector<string> ScriptPaths, uint64_t BaseInput)
 {
 	frameLimit = 16;
 	loadedScripts = vector<LuaScript*>();
-	LoadScripts(ScrPath, BaseInput);
+	LoadScripts(ScriptPaths, BaseInput);
 }
 
-void LuaBackend::LoadScripts(const char* ScrPath, uint64_t BaseInput)
+void LuaBackend::LoadScripts(vector<string> ScriptPaths, uint64_t BaseInput)
 {
 	loadedScripts.clear();
 
-	for (auto _path : filesystem::directory_iterator(ScrPath))
-	{
-		LuaScript* _script = new LuaScript();
+	for (auto scriptsDir : ScriptPaths) {
+		if (!filesystem::is_directory(scriptsDir)) {
+			continue;
+		}
 
-		_script->luaState.open_libraries
-		(
-			lib::base,
-			lib::package,
-			lib::coroutine,
-			lib::string,
-			lib::os,
-			lib::math,
-			lib::table,
-			lib::io,
-			lib::bit32,
-			lib::utf8
-		);
-
-		_script->luaState.set_exception_handler(&ExceptionHandle);
-
-		SetFunctions(&_script->luaState);
-
-		string _luaPath = ScrPath;
-		_luaPath.append("\\io_packages\\?.lua");
-
-		string _dllPath = ScrPath;
-		_dllPath.append("\\io_packages\\?.dll");
-
-		_script->luaState["package"]["path"] = _luaPath;
-		_script->luaState["package"]["cpath"] = _dllPath;
-
-		string _loadPath = ScrPath;
-		_loadPath.append("\\io_load");
-
-		_script->luaState["LOAD_PATH"] = _loadPath;
-		_script->luaState["SCRIPT_PATH"] = ScrPath;
-		_script->luaState["CHEATS_PATH"] = "NOT_AVAILABLE";
-
-		string _pathFull = MemoryLib::PName;
-		auto _pathExe = _pathFull.substr(_pathFull.find_last_of("\\") + 1);
-
-		_script->luaState["ENGINE_VERSION"] = 5;
-		_script->luaState["ENGINE_TYPE"] = "BACKEND";
-		_script->luaState["GAME_ID"] = CRC::Calculate(_pathExe.c_str(), _pathExe.length(), CRC::CRC_32());
-		_script->luaState["BASE_ADDR"] = BaseInput;
-
-		string _filePath(_path.path().u8string());
-
-		if (_path.path().extension() == ".lua")
+		for (auto _path : filesystem::directory_iterator(scriptsDir))
 		{
-			string _luaName = _filePath.substr(_filePath.find_last_of("\\") + 1);
-			_script->luaState["LUA_NAME"] = _luaName.substr(0, _luaName.size() - 4);
+			LuaScript* _script = new LuaScript();
 
-			ConsoleLib::MessageOutput("Found script: \"" + _luaName + "\" Initializing...\n", 0);
+			_script->luaState.open_libraries
+			(
+				lib::base,
+				lib::package,
+				lib::coroutine,
+				lib::string,
+				lib::os,
+				lib::math,
+				lib::table,
+				lib::io,
+				lib::bit32,
+				lib::utf8
+			);
 
-			auto _result = _script->luaState.script_file(_filePath, &sol::script_pass_on_error);
+			_script->luaState.set_exception_handler(&ExceptionHandle);
 
-			_script->initFunction = _script->luaState["_OnInit"];
-			_script->frameFunction = _script->luaState["_OnFrame"];
+			SetFunctions(&_script->luaState);
 
-			if (_result.valid())
+			string _luaPath = scriptsDir;
+			_luaPath.append("\\io_packages\\?.lua");
+
+			string _dllPath = scriptsDir;
+			_dllPath.append("\\io_packages\\?.dll");
+
+			_script->luaState["package"]["path"] = _luaPath;
+			_script->luaState["package"]["cpath"] = _dllPath;
+
+			string _loadPath = scriptsDir;
+			_loadPath.append("\\io_load");
+
+			_script->luaState["LOAD_PATH"] = _loadPath;
+			_script->luaState["SCRIPT_PATH"] = scriptsDir;
+			_script->luaState["CHEATS_PATH"] = "NOT_AVAILABLE";
+
+			string _pathFull = MemoryLib::PName;
+			auto _pathExe = _pathFull.substr(_pathFull.find_last_of("\\") + 1);
+
+			_script->luaState["ENGINE_VERSION"] = 5;
+			_script->luaState["ENGINE_TYPE"] = "BACKEND";
+			_script->luaState["GAME_ID"] = CRC::Calculate(_pathExe.c_str(), _pathExe.length(), CRC::CRC_32());
+			_script->luaState["BASE_ADDR"] = BaseInput;
+
+			string _filePath(_path.path().u8string());
+
+			if (_path.path().extension() == ".lua")
 			{
-				if (!_script->initFunction && !_script->frameFunction)
+				string _luaName = _filePath.substr(_filePath.find_last_of("\\") + 1);
+				_script->luaState["LUA_NAME"] = _luaName.substr(0, _luaName.size() - 4);
+
+				ConsoleLib::MessageOutput("Found script: \"" + _filePath + "\" Initializing...\n", 0);
+
+				auto _result = _script->luaState.script_file(_filePath, &sol::script_pass_on_error);
+
+				_script->initFunction = _script->luaState["_OnInit"];
+				_script->frameFunction = _script->luaState["_OnFrame"];
+
+				if (_result.valid())
 				{
-					ConsoleLib::MessageOutput("No event handlers exist or all of them have errors.\n", 3);
-					ConsoleLib::MessageOutput("Initialization of this script cannot continue...\n", 3);
-					return;
+					if (!_script->initFunction && !_script->frameFunction)
+					{
+						ConsoleLib::MessageOutput("No event handlers exist or all of them have errors.\n", 3);
+						ConsoleLib::MessageOutput("Initialization of this script cannot continue...\n", 3);
+						return;
+					}
+
+					if (!_script->initFunction)
+						ConsoleLib::MessageOutput("The event handler for initialization either has errors or does not exist.\n", 2);
+
+					if (!_script->frameFunction)
+						ConsoleLib::MessageOutput("The event handler for framedraw either has errors or does not exist.\n", 2);
+
+					ConsoleLib::MessageOutput("Initialization of this script was successful!\n\n", 1);
+
+					loadedScripts.push_back(_script);
 				}
 
-				if (!_script->initFunction)
-					ConsoleLib::MessageOutput("The event handler for initialization either has errors or does not exist.\n", 2);
-
-				if (!_script->frameFunction)
-					ConsoleLib::MessageOutput("The event handler for framedraw either has errors or does not exist.\n", 2);
-
-				ConsoleLib::MessageOutput("Initialization of this script was successful!\n\n", 1);
-
-				loadedScripts.push_back(_script);
-			}
-
-			else
-			{
-				sol::error err = _result;
-				ConsoleLib::MessageOutput(err.what() + '\n', 3);
-				ConsoleLib::MessageOutput("Initialization of this script was aborted.\n", 3);
+				else
+				{
+					sol::error err = _result;
+					ConsoleLib::MessageOutput(err.what() + '\n', 3);
+					ConsoleLib::MessageOutput("Initialization of this script was aborted.\n", 3);
+				}
 			}
 		}
 	}
-
 }
 
 void LuaBackend::SetFunctions(LuaState* _state)
