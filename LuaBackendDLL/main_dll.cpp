@@ -353,20 +353,41 @@ DWORD WINAPI entry(LPVOID lpParameter) {
     vector<string> scriptPaths = {};
     fs::path scriptLocationsFile = fs::path{ gamesPath } / "LuaScriptLocations.txt";
     if (fs::exists(scriptLocationsFile)) {
-        ifstream input(scriptLocationsFile);
+        string gameScriptsKey = "[" + string(gameInfo->scriptsPath) + "]";
 
+        ifstream input(scriptLocationsFile);
         string line;
+        BOOL inCorrectGame = false;
         while (getline(input, line)) {
-            fs::path scriptPath = fs::path{ line } / gameInfo->scriptsPath;
-            if (fs::exists(scriptPath)) {
-                scriptPaths.push_back(scriptPath.u8string());
+            size_t length = line.length();
+            if (length == 0) {
+                continue;
+            }
+
+            // Some crude parsing going on here, but seems preferable to bundling an entire parsing library
+            if (line.at(0) == '[') {
+                if (line == gameScriptsKey) {
+                    inCorrectGame = true;
+                }
+                else {
+                    inCorrectGame = false;
+                }
+            }
+            else {
+                if (inCorrectGame) {
+                    fs::path scriptPath = fs::path{ line };
+                    if (fs::exists(scriptPath)) {
+                        scriptPaths.push_back(scriptPath.u8string());
+                    }
+                }
             }
         }
 
         input.close();
     }
-    else {
-        // Fall back to the scripts folder in Documents
+
+    if (scriptPaths.empty()) {
+        // Attempt to fall back to the scripts folder in Documents
         char scriptsPath[MAX_PATH];
         SHGetFolderPathA(0, CSIDL_MYDOCUMENTS, nullptr, 0, scriptsPath);
         std::strcat(scriptsPath, "\\KINGDOM HEARTS HD 1.5+2.5 ReMIX\\scripts");
