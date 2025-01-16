@@ -18,7 +18,7 @@ include(FetchContent)
 
 FetchContent_Declare(ztd.text
     GIT_REPOSITORY https://github.com/soasis/text.git
-    GIT_TAG        bba2e9207bb6e697a2bcf44b7e72e2b733153cab)
+    GIT_TAG        c06e3bf990911e09652b784ed01bc68f8f1c1105)
 
 FetchContent_Declare(wil
     GIT_REPOSITORY https://github.com/microsoft/wil.git
@@ -77,8 +77,7 @@ add_library(DBGHELP SHARED ${SOURCE})
 add_dependencies(DBGHELP build-info)
 
 if(MSVC)
-    # ZTD_STD_LIBRARY_RANGES is broken currently on MSVC
-    target_compile_options(DBGHELP PRIVATE -W4 -WX -DZTD_STD_LIBRARY_RANGES=0)
+    target_compile_options(DBGHELP PRIVATE -W4 -WX)
 else()
     target_compile_options(DBGHELP PRIVATE -Wall -Wextra -Wpedantic)
 endif()
