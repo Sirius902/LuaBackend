@@ -48,7 +48,7 @@ hooking as DINPUT8 is also supported. To hook as DINPUT8, rename the `DBGHELP.dl
 
 ```powershell
 $env:VCPKG_DEFAULT_TRIPLET="x64-windows-static"
-vcpkg install pkgconf fmt ztd-text wil tomlplusplus lua rapidjson
+vcpkg install pkgconf fmt ztd-text wil tomlplusplus sol2 lua rapidjson
 ```
 
 - Inside the repository run `cmake --preset=default` to configure the project.

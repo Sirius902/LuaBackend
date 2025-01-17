@@ -22,6 +22,7 @@ find_package(wil CONFIG REQUIRED)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(tomlplusplus REQUIRED IMPORTED_TARGET tomlplusplus)
 
+find_package(sol2 CONFIG REQUIRED)
 find_package(Lua REQUIRED)
 
 include(FetchContent)
@@ -96,6 +97,7 @@ target_link_libraries(DBGHELP PRIVATE
     fmt::fmt
     ztd.text
     WIL::WIL
+    sol2
     ${LUA_LIBRARIES}
     discord-rpc
 )
