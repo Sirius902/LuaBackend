@@ -26,7 +26,15 @@ pkg_check_modules(tomlplusplus REQUIRED IMPORTED_TARGET tomlplusplus)
 find_package(sol2 CONFIG REQUIRED)
 find_package(Lua REQUIRED)
 
-find_library(DISCORD_RPC_LIBRARY discord-rpc PATHS ${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/lib)
+find_library(DISCORD_RPC_LIBRARY_DEBUG discord-rpc
+    PATHS ${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/debug/lib
+    NO_DEFAULT_PATH
+    REQUIRED)
+
+find_library(DISCORD_RPC_LIBRARY_RELEASE discord-rpc
+    PATHS ${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/lib
+    NO_DEFAULT_PATH
+    REQUIRED)
 
 set(SOURCE
     src/main_dll.cpp
@@ -83,7 +91,8 @@ target_link_libraries(DBGHELP PRIVATE
     WIL::WIL
     sol2
     ${LUA_LIBRARIES}
-    ${DISCORD_RPC_LIBRARY}
+    $<$<CONFIG:Debug>:${DISCORD_RPC_LIBRARY_DEBUG}>
+    $<$<CONFIG:Release>:${DISCORD_RPC_LIBRARY_RELEASE}>
 )
 
 unset(PROGRAM_VERSION CACHE)
