@@ -26,23 +26,7 @@ pkg_check_modules(tomlplusplus REQUIRED IMPORTED_TARGET tomlplusplus)
 find_package(sol2 CONFIG REQUIRED)
 find_package(Lua REQUIRED)
 
-include(FetchContent)
-
-# Disable DiscordRPC from running clang-format to work around issue with
-# its .clang-format file.
-set(CLANG_FORMAT_CMD "")
-
-FetchContent_Declare(DiscordRPC
-    GIT_REPOSITORY https://github.com/discord/discord-rpc.git
-    GIT_TAG        963aa9f3e5ce81a4682c6ca3d136cddda614db33)
-
-FetchContent_MakeAvailable(DiscordRPC)
-
-# Required by DiscordRPC.
-find_package(RapidJSON CONFIG REQUIRED)
-
-# Add RapidJSON include path for DiscordRPC.
-target_link_libraries(discord-rpc PRIVATE rapidjson)
+find_library(DISCORD_RPC_LIBRARY discord-rpc PATHS ${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/lib)
 
 set(SOURCE
     src/main_dll.cpp
@@ -81,16 +65,16 @@ add_library(DBGHELP SHARED ${SOURCE})
 add_dependencies(DBGHELP build-info)
 
 if(MSVC)
-    # ZTD_STD_LIBRARY_RANGES is broken currently on MSVC
+    # FUTURE(Sirius902) ZTD_STD_LIBRARY_RANGES is broken currently on MSVC
     target_compile_options(DBGHELP PRIVATE -W4 -WX -DZTD_STD_LIBRARY_RANGES=0)
 else()
     target_compile_options(DBGHELP PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 
+# FUTURE(Sirius902) Use tomlplusplus as header only because of weird linking issues
 target_compile_definitions(DBGHELP PRIVATE -DUNICODE -D_UNICODE -DTOML_HEADER_ONLY=1)
 target_include_directories(DBGHELP PRIVATE
     external/include
-    ${DiscordRPC_SOURCE_DIR}/include
     ${LUA_INCLUDE_DIR}
     ${CMAKE_CURRENT_BINARY_DIR}
 )
@@ -99,7 +83,7 @@ target_link_libraries(DBGHELP PRIVATE
     WIL::WIL
     sol2
     ${LUA_LIBRARIES}
-    discord-rpc
+    ${DISCORD_RPC_LIBRARY}
 )
 
 unset(PROGRAM_VERSION CACHE)
