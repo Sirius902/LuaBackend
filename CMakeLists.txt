@@ -12,6 +12,9 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# Statically link CRT
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+
 find_package(ztd.text CONFIG REQUIRED)
 find_package(ztd.cuneicode CONFIG REQUIRED)
 
@@ -79,7 +82,7 @@ add_dependencies(DBGHELP build-info)
 
 if(MSVC)
     # ZTD_STD_LIBRARY_RANGES is broken currently on MSVC
-    target_compile_options(DBGHELP PRIVATE -W4 -WX  -DZTD_STD_LIBRARY_RANGES=0)
+    target_compile_options(DBGHELP PRIVATE -W4 -WX -DZTD_STD_LIBRARY_RANGES=0)
 else()
     target_compile_options(DBGHELP PRIVATE -Wall -Wextra -Wpedantic)
 endif()
