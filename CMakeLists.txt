@@ -8,25 +8,23 @@ project(LuaBackendHook LANGUAGES CXX)
 
 set(PROGRAM_VERSION "" CACHE STRING "Program version override")
 
-option(WIL_BUILD_TESTS OFF)
-
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+find_package(fmt CONFIG REQUIRED)
+
+find_package(ztd.text CONFIG REQUIRED)
+find_package(ztd.cuneicode CONFIG REQUIRED)
+
+find_package(wil CONFIG REQUIRED)
+
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(tomlplusplus REQUIRED IMPORTED_TARGET tomlplusplus)
+
+find_package(Lua REQUIRED)
+
 include(FetchContent)
-
-FetchContent_Declare(ztd.text
-    GIT_REPOSITORY https://github.com/soasis/text.git
-    GIT_TAG        c06e3bf990911e09652b784ed01bc68f8f1c1105)
-
-FetchContent_Declare(wil
-    GIT_REPOSITORY https://github.com/microsoft/wil.git
-    GIT_TAG        8501377980a52d98d1b51d04f60f571a7f0dc3db)
-
-FetchContent_Declare(tomlplusplus
-    GIT_REPOSITORY https://github.com/marzer/tomlplusplus.git
-    GIT_TAG        d8fa9a1fddc90254cac2366dde23f0b613bc1280)
 
 # Disable DiscordRPC from running clang-format to work around issue with
 # its .clang-format file.
@@ -36,9 +34,13 @@ FetchContent_Declare(DiscordRPC
     GIT_REPOSITORY https://github.com/discord/discord-rpc.git
     GIT_TAG        963aa9f3e5ce81a4682c6ca3d136cddda614db33)
 
-FetchContent_MakeAvailable(ztd.text wil tomlplusplus DiscordRPC)
+FetchContent_MakeAvailable(DiscordRPC)
 
-add_subdirectory(external/subproject/lua544)
+# Required by DiscordRPC.
+find_package(RapidJSON CONFIG REQUIRED)
+
+# Add RapidJSON include path for DiscordRPC.
+target_link_libraries(discord-rpc PRIVATE rapidjson)
 
 set(SOURCE
     src/main_dll.cpp
@@ -77,23 +79,24 @@ add_library(DBGHELP SHARED ${SOURCE})
 add_dependencies(DBGHELP build-info)
 
 if(MSVC)
-    target_compile_options(DBGHELP PRIVATE -W4 -WX)
+    # ZTD_STD_LIBRARY_RANGES is broken currently on MSVC
+    target_compile_options(DBGHELP PRIVATE -W4 -WX  -DZTD_STD_LIBRARY_RANGES=0)
 else()
     target_compile_options(DBGHELP PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 
-target_compile_definitions(DBGHELP PRIVATE -DUNICODE -D_UNICODE)
+target_compile_definitions(DBGHELP PRIVATE -DUNICODE -D_UNICODE -DTOML_HEADER_ONLY=1)
 target_include_directories(DBGHELP PRIVATE
     external/include
-    external/subproject/lua544
     ${DiscordRPC_SOURCE_DIR}/include
+    ${LUA_INCLUDE_DIR}
     ${CMAKE_CURRENT_BINARY_DIR}
 )
 target_link_libraries(DBGHELP PRIVATE
+    fmt::fmt
     ztd.text
-    WIL
-    tomlplusplus::tomlplusplus
-    lua54
+    WIL::WIL
+    ${LUA_LIBRARIES}
     discord-rpc
 )
 

@@ -13,14 +13,21 @@ jobs:
       uses: actions/checkout@v3
     - name: Setup MSBuild
       uses: microsoft/setup-msbuild@v1
+    - name: vcpkg build
+      uses: johnwason/vcpkg-action@v6
+      id: vcpkg
+      with:
+        pkgs: pkgconf fmt ztd-text wil tomlplusplus lua rapidjson
+        triplet: x64-windows-static
+        token: ${{ github.token }}
+        github-binarycache: true
     - name: Build Solution
       run: |
-        mkdir build && cd build
-        cmake .. -DPROGRAM_VERSION:STRING="${{github.ref_name}}"
-        cmake --build . --config Release
+        cmake ${{ steps.vcpkg.outputs.vcpkg-cmake-config }} -S . -B build -DPROGRAM_VERSION:STRING="${{github.ref_name}}"
+        cmake --build build --config Release
     - name: Compress Artifacts
       run: |
-        7z a DBGHELP.zip ./build/Release/DBGHELP.dll ./build/external/subproject/lua544/Release/lua54.dll ./config/LuaBackend.toml
+        7z a DBGHELP.zip ./build/Release/DBGHELP.dll ./config/LuaBackend.toml
     - name: Automatic Release
       uses: marvinpinto/action-automatic-releases@latest
       with:

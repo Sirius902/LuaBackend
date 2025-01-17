@@ -37,3 +37,20 @@ be able to launch automatically with the game.
 To support platforms where hooking as DBGHELP does not work such as Linux using Wine,
 hooking as DINPUT8 is also supported. To hook as DINPUT8, rename the `DBGHELP.dll` to
 `DINPUT8.dll`.
+
+## Building
+
+- Install Visual Studio Community 2022 (or just the build tools) and ensure the `Desktop development with C++` workflow is installed.
+- Install CMake: `winget install Kitware.CMake`
+- Install vcpkg by following steps 1 and 2.1 from
+[here](https://learn.microsoft.com/en-us/vcpkg/get_started/get-started?pivots=shell-powershell).
+- Install the required vcpkg dependencies by running the following in PowerShell.
+
+```powershell
+$env:VCPKG_DEFAULT_TRIPLET="x64-windows-static"
+vcpkg install pkgconf fmt ztd-text wil tomlplusplus lua rapidjson
+```
+
+- Inside the repository run `cmake --preset=default` to configure the project.
+- Run `cmake --build build` to build the project. To build for release mode add `--config Release`.
+- The artifacts can now be found somewhere in the `build` directory. If building for MSVC in debug mode this will be `build/Debug`.

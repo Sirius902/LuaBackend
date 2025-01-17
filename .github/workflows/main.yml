@@ -15,16 +15,22 @@ jobs:
       uses: actions/checkout@v3
     - name: Setup MSBuild
       uses: microsoft/setup-msbuild@v1
+    - name: vcpkg build
+      uses: johnwason/vcpkg-action@v6
+      id: vcpkg
+      with:
+        pkgs: pkgconf fmt ztd-text wil tomlplusplus lua rapidjson
+        triplet: x64-windows-static
+        token: ${{ github.token }}
+        github-binarycache: true
     - name: Build Solution
       run: |
-        mkdir build && cd build
-        cmake ..
-        cmake --build . --config Release
+        cmake ${{ steps.vcpkg.outputs.vcpkg-cmake-config }} -S . -B build
+        cmake --build build --config Release
     - name: Copy Artifacts
       run: |
         mkdir artifacts
         cp build/Release/DBGHELP.dll artifacts
-        cp build/external/subproject/lua544/Release/lua54.dll artifacts
         cp config/LuaBackend.toml artifacts
     - name: Upload DBGHELP
       uses: actions/upload-artifact@v3
