@@ -33,7 +33,7 @@ jobs:
         cp build/Release/DBGHELP.dll artifacts
         cp config/LuaBackend.toml artifacts
     - name: Upload DBGHELP
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: DBGHELP
         path: artifacts
