@@ -17,7 +17,7 @@ jobs:
       uses: johnwason/vcpkg-action@v6
       id: vcpkg
       with:
-        pkgs: pkgconf fmt ztd-text wil tomlplusplus sol2 lua rapidjson
+        pkgs: pkgconf ztd-text wil tomlplusplus sol2 lua rapidjson
         triplet: x64-windows-static
         token: ${{ github.token }}
         github-binarycache: true

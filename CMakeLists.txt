@@ -12,8 +12,6 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-find_package(fmt CONFIG REQUIRED)
-
 find_package(ztd.text CONFIG REQUIRED)
 find_package(ztd.cuneicode CONFIG REQUIRED)
 
@@ -94,7 +92,6 @@ target_include_directories(DBGHELP PRIVATE
     ${CMAKE_CURRENT_BINARY_DIR}
 )
 target_link_libraries(DBGHELP PRIVATE
-    fmt::fmt
     ztd.text
     WIL::WIL
     sol2
