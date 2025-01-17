@@ -129,6 +129,7 @@ SectionInfo findTextSectionInfo() {
           .offset = sectionHeader->VirtualAddress,
           .size = sectionHeader->SizeOfRawData,
       };
+      break;
     }
   }
 
