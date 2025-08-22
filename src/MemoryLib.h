@@ -32,7 +32,7 @@ private:
   public:
     protect_lock(std::uintptr_t address, std::size_t size)
         : address(address), size(size), protection(0), is_acquired(false) {
-      if (VirtualProtect((void*)address, size, PAGE_READWRITE, &protection) !=
+      if (VirtualProtect((void*)address, size, PAGE_EXECUTE_READWRITE, &protection) !=
           0)
         is_acquired = true;
     }
