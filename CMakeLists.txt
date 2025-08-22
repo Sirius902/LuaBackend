@@ -89,7 +89,7 @@ target_include_directories(DBGHELP PRIVATE
 target_link_libraries(DBGHELP PRIVATE
     ztd.text
     WIL::WIL
-    sol2
+    sol2::sol2
     ${LUA_LIBRARIES}
     $<$<CONFIG:Debug>:${DISCORD_RPC_LIBRARY_DEBUG}>
     $<$<CONFIG:Release>:${DISCORD_RPC_LIBRARY_RELEASE}>
